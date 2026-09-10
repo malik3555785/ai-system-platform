@@ -1,0 +1,72 @@
+# AI System Platform Configuration
+
+api:
+  host: 0.0.0.0
+  port: 8000
+  debug: false
+  log_level: INFO
+
+system:
+  name: AI-System-Platform
+  version: 1.0.0
+  environment: development
+
+models:
+  default: gpt-5
+  timeout: 30
+  providers:
+    openai:
+      enabled: true
+      api_key: ${GPT5_API_KEY}
+      models:
+        - gpt-5
+        - gpt-5-mini
+    anthropic:
+      enabled: true
+      api_key: ${CLAUDE_API_KEY}
+      models:
+        - claude-opus
+        - claude-sonnet
+
+database:
+  url: sqlite:///./data/ai_system.db
+  pool_size: 10
+  echo: false
+  migrations_path: ./migrations
+
+cache:
+  redis_url: redis://localhost:6379/0
+  ttl: 3600
+  enabled: true
+
+auth:
+  secret_key: ${AUTH_SECRET_KEY}
+  algorithm: HS256
+  expiration_hours: 24
+  enabled: true
+
+rate_limiting:
+  enabled: true
+  requests_per_minute: 60
+  per_user: 100
+
+monitoring:
+  enabled: true
+  prometheus_port: 9090
+  metrics_enabled: true
+  tracing_enabled: false
+
+logging:
+  level: INFO
+  format: json
+  file: logs/ai_system.log
+  max_bytes: 10485760
+  backup_count: 5
+
+tools:
+  enabled: true
+  max_execution_time: 30
+  available_tools:
+    - web-search
+    - code-executor
+    - file-operations
