@@ -1,59 +1,55 @@
-version: '3.8'
+version: '3.9'
 
 services:
-  api:
+  backend:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    container_name: ai-system-api
     ports:
       - "8000:8000"
     environment:
       - API_HOST=0.0.0.0
       - API_PORT=8000
-      - API_DEBUG=False
-      - DATABASE_URL=postgresql+asyncpg://user:password@postgres:5432/ai_system
+      - DATABASE_URL=sqlite:///./data/ai_system.db
       - REDIS_URL=redis://redis:6379/0
+      - EXTERNAL_API_BASE_URL=https://apis.davidcyril.name.ng
+      - DEBUG=False
+      - ENVIRONMENT=production
     depends_on:
-      - postgres
       - redis
-    networks:
-      - ai-network
     volumes:
       - ./logs:/app/logs
-
-  postgres:
-    image: postgres:15-alpine
-    container_name: ai-system-postgres
-    environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=ai_system
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./data:/app/data
     networks:
       - ai-network
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
-    container_name: ai-system-redis
-    networks:
-      - ai-network
-
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: ai-system-prometheus
     ports:
-      - "9090:9090"
+      - "6379:6379"
     volumes:
-      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
+      - redis_data:/data
     networks:
       - ai-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - ai-network
+    restart: unless-stopped
 
 volumes:
-  postgres_data:
-  prometheus_data:
+  redis_data:
 
 networks:
   ai-network:

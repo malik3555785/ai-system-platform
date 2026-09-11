@@ -1,10 +1,7 @@
-"""
-Model Management Tests
-"""
+"""Model endpoint tests"""
 
 import pytest
 from fastapi.testclient import TestClient
-
 from src.api.app import create_app
 
 
@@ -15,17 +12,25 @@ def client():
 
 
 def test_list_models(client):
-    response = client.get("/api/models/")
+    """Test list models endpoint"""
+    response = client.get("/api/v1/models/list")
     assert response.status_code == 200
     data = response.json()
-    assert len(data) > 0
-    assert "id" in data[0]
-    assert "name" in data[0]
+    assert "models" in data
+    assert "count" in data
+    assert len(data["models"]) > 0
 
 
 def test_get_model(client):
-    response = client.get("/api/models/gpt-5")
+    """Test get specific model endpoint"""
+    response = client.get("/api/v1/models/gpt-4")
     assert response.status_code == 200
     data = response.json()
-    assert data["id"] == "gpt-5"
-    assert "capabilities" in data
+    assert data["name"] == "gpt-4"
+    assert data["provider"] == "OpenAI"
+
+
+def test_get_nonexistent_model(client):
+    """Test get nonexistent model returns 404"""
+    response = client.get("/api/v1/models/nonexistent-model")
+    assert response.status_code == 404
