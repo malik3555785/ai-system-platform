@@ -1,7 +1,4 @@
-"""
-AI System Platform Package
-"""
+"""AI System Platform - Core Package"""
 
-__version__ = "1.0.0"
-__author__ = "AI System Platform"
-__license__ = "MIT"
+__version__ = "2.0.0"
+__author__ = "Malik AI System"
