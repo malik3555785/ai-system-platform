@@ -1,84 +1,61 @@
-"""
-Chat Completion Endpoints
-"""
-
-import logging
-from typing import List, Optional
-from datetime import datetime
+"""Chat endpoints"""
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime
+import logging
 
 logger = logging.getLogger("ai_system")
 router = APIRouter()
 
 
-class Message(BaseModel):
-    """Chat message"""
-    role: str = Field(..., description="Role: 'user', 'assistant', or 'system'")
-    content: str = Field(..., description="Message content")
-
-
-class ChatRequest(BaseModel):
-    """Chat completion request"""
-    model: str = Field("gpt-5", description="Model ID")
-    messages: List[Message] = Field(..., description="Messages")
-    temperature: float = Field(0.7, ge=0.0, le=2.0, description="Temperature")
-    max_tokens: int = Field(1000, ge=1, description="Max tokens")
-    top_p: float = Field(1.0, ge=0.0, le=1.0, description="Top P")
+class ChatMessage(BaseModel):
+    """Chat message schema"""
+    content: str
+    model: str = "gpt-4"
+    temperature: float = 0.7
+    max_tokens: Optional[int] = None
 
 
 class ChatResponse(BaseModel):
-    """Chat completion response"""
-    id: str
+    """Chat response schema"""
+    message: str
     model: str
     timestamp: str
-    message: Message
-    usage: dict
-    stop_reason: str
+    tokens_used: Optional[int] = None
 
 
-@router.post("/completions", response_model=ChatResponse)
-async def create_chat_completion(request: ChatRequest):
-    """
-    Create a chat completion
-    """
-    logger.info(f"Chat request: model={request.model}, messages={len(request.messages)}")
-    
-    # Mock response for demonstration
-    return ChatResponse(
-        id="chat-001",
-        model=request.model,
-        timestamp=datetime.utcnow().isoformat(),
-        message=Message(
-            role="assistant",
-            content="This is a demonstration response. Connect to real models for actual responses."
-        ),
-        usage={
-            "prompt_tokens": 10,
-            "completion_tokens": 20,
-            "total_tokens": 30,
-        },
-        stop_reason="stop",
-    )
+@router.post("/message")
+async def send_message(message: ChatMessage) -> ChatResponse:
+    """Send a chat message"""
+    try:
+        response_text = f"Response to: {message.content} (using {message.model})"
+        
+        return ChatResponse(
+            message=response_text,
+            model=message.model,
+            timestamp=datetime.utcnow().isoformat()
+        )
+    except Exception as e:
+        logger.error(f"Chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/stream")
-async def stream_chat_completion(request: ChatRequest):
-    """
-    Stream a chat completion
-    """
-    logger.info(f"Stream request: model={request.model}")
-    
-    async def generate():
-        chunks = [
-            {"chunk": "This ", "index": 0},
-            {"chunk": "is ", "index": 1},
-            {"chunk": "a ", "index": 2},
-            {"chunk": "streaming ", "index": 3},
-            {"chunk": "response.", "index": 4},
-        ]
-        for chunk in chunks:
-            yield f"data: {chunk}\n\n"
-    
-    return generate()
+@router.get("/history/{session_id}")
+async def get_chat_history(session_id: str):
+    """Get chat history for a session"""
+    return {
+        "session_id": session_id,
+        "messages": [],
+        "count": 0
+    }
+
+
+@router.delete("/clear/{session_id}")
+async def clear_chat_history(session_id: str):
+    """Clear chat history"""
+    return {
+        "status": "cleared",
+        "session_id": session_id
+    }

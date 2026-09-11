@@ -1,78 +1,46 @@
-"""
-FastAPI Application Factory
-"""
+"""FastAPI application factory"""
 
-import logging
-from contextlib import asynccontextmanager
-
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
-
-from src.config.settings import get_settings
-from src.core.cache import close_cache
-from src.core.database import close_database
-from src.api.routes import health, models, chat, tools
-
-logger = logging.getLogger("ai_system")
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """
-    Manage application lifecycle
-    """
-    # Startup
-    logger.info("Application startup")
-    yield
-    # Shutdown
-    logger.info("Application shutdown")
-    await close_database()
-    await close_cache()
+from fastapi.responses import JSONResponse
+from src.config.settings import settings
+from src.api.routes import models, external_apis, chat, health
 
 
 def create_app() -> FastAPI:
-    """
-    Create and configure FastAPI application
-    """
-    settings = get_settings()
+    """Create and configure FastAPI application"""
     
     app = FastAPI(
         title=settings.SYSTEM_NAME,
+        description="Comprehensive AI System Platform with Multi-Model Support",
         version=settings.SYSTEM_VERSION,
-        description="Comprehensive AI System Platform",
-        lifespan=lifespan,
+        docs_url="/docs",
+        redoc_url="/redoc"
     )
     
-    # CORS Middleware
+    # Add CORS middleware
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=settings.CORS_ORIGINS,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
     
-    # Trusted Host Middleware
-    app.add_middleware(
-        TrustedHostMiddleware,
-        allowed_hosts=["*"],
-    )
-    
-    # Global exception handler
-    @app.exception_handler(Exception)
-    async def global_exception_handler(request: Request, exc: Exception):
-        logger.error(f"Unhandled exception: {exc}", exc_info=True)
-        return JSONResponse(
-            status_code=500,
-            content={"detail": "Internal server error", "error_type": type(exc).__name__},
-        )
-    
     # Include routers
     app.include_router(health.router, tags=["Health"])
-    app.include_router(models.router, prefix="/api/models", tags=["Models"])
-    app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
-    app.include_router(tools.router, prefix="/api/tools", tags=["Tools"])
+    app.include_router(models.router, prefix="/api/v1/models", tags=["Models"])
+    app.include_router(external_apis.router, prefix="/api/v1/external", tags=["External APIs"])
+    app.include_router(chat.router, prefix="/api/v1/chat", tags=["Chat"])
+    
+    @app.on_event("startup")
+    async def startup():
+        """Startup event"""
+        pass
+    
+    @app.on_event("shutdown")
+    async def shutdown():
+        """Shutdown event"""
+        pass
     
     return app

@@ -1,89 +1,48 @@
-"""
-Model Management Endpoints
-"""
+"""Model management endpoints"""
 
-import logging
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 from typing import List
 
-from fastapi import APIRouter
-from pydantic import BaseModel, Field
-
-logger = logging.getLogger("ai_system")
 router = APIRouter()
 
 
-class ModelInfo(BaseModel):
-    """Model information"""
-    id: str
+class Model(BaseModel):
+    """Model schema"""
     name: str
-    version: str
     provider: str
-    capabilities: List[str]
-    max_tokens: int
-    cost_per_1k_input: float
-    cost_per_1k_output: float
-    status: str = "available"
+    version: str
+    description: str
+    enabled: bool = True
 
 
-# Available models
 AVAILABLE_MODELS = [
-    ModelInfo(
-        id="gpt-5",
-        name="GPT-5",
-        version="5.0",
-        provider="OpenAI",
-        capabilities=["text-generation", "code-generation", "reasoning"],
-        max_tokens=8192,
-        cost_per_1k_input=0.03,
-        cost_per_1k_output=0.06,
-    ),
-    ModelInfo(
-        id="gpt-5-mini",
-        name="GPT-5 Mini",
-        version="5.0",
-        provider="OpenAI",
-        capabilities=["text-generation", "code-generation"],
-        max_tokens=4096,
-        cost_per_1k_input=0.01,
-        cost_per_1k_output=0.02,
-    ),
-    ModelInfo(
-        id="claude-opus",
-        name="Claude Opus 4.8",
-        version="4.8",
-        provider="Anthropic",
-        capabilities=["text-generation", "reasoning", "analysis"],
-        max_tokens=100000,
-        cost_per_1k_input=0.015,
-        cost_per_1k_output=0.075,
-    ),
-    ModelInfo(
-        id="claude-sonnet",
-        name="Claude Sonnet 4.6",
-        version="4.6",
-        provider="Anthropic",
-        capabilities=["text-generation", "code-generation"],
-        max_tokens=200000,
-        cost_per_1k_input=0.003,
-        cost_per_1k_output=0.015,
-    ),
+    Model(name="gpt-4", provider="OpenAI", version="4.0", description="GPT-4 Model"),
+    Model(name="gpt-3.5-turbo", provider="OpenAI", version="3.5", description="GPT-3.5 Turbo"),
+    Model(name="claude-3", provider="Anthropic", version="3.0", description="Claude 3 Model"),
+    Model(name="claude-2", provider="Anthropic", version="2.0", description="Claude 2 Model"),
 ]
 
 
-@router.get("/", response_model=List[ModelInfo])
+@router.get("/list")
 async def list_models():
-    """
-    List all available models
-    """
-    return AVAILABLE_MODELS
+    """List all available models"""
+    return {"models": AVAILABLE_MODELS, "count": len(AVAILABLE_MODELS)}
 
 
-@router.get("/{model_id}", response_model=ModelInfo)
-async def get_model(model_id: str):
-    """
-    Get specific model information
-    """
+@router.get("/{model_name}")
+async def get_model(model_name: str):
+    """Get specific model details"""
     for model in AVAILABLE_MODELS:
-        if model.id == model_id:
+        if model.name == model_name:
             return model
-    return {"error": f"Model {model_id} not found"}
+    raise HTTPException(status_code=404, detail="Model not found")
+
+
+@router.post("/initialize")
+async def initialize_model(model_name: str):
+    """Initialize a model"""
+    for model in AVAILABLE_MODELS:
+        if model.name == model_name:
+            return {"status": "initialized", "model": model}
+    raise HTTPException(status_code=404, detail="Model not found")

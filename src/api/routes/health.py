@@ -1,45 +1,26 @@
-"""
-Health Check Endpoints
-"""
-
-import logging
-from datetime import datetime
+"""Health check endpoints"""
 
 from fastapi import APIRouter
+from datetime import datetime
 
-from src.config.settings import get_settings
-
-logger = logging.getLogger("ai_system")
 router = APIRouter()
 
 
-@router.get("/health")
+@router.get("/health", tags=["Health"])
 async def health_check():
-    """
-    Health check endpoint
-    """
-    settings = get_settings()
+    """Health check endpoint"""
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
-        "system": settings.SYSTEM_NAME,
-        "version": settings.SYSTEM_VERSION,
-        "environment": settings.ENVIRONMENT,
+        "service": "AI System Platform"
     }
 
 
-@router.get("/health/deep")
-async def deep_health_check():
-    """
-    Deep health check with component status
-    """
+@router.get("/status", tags=["Health"])
+async def status():
+    """System status"""
     return {
-        "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
-        "components": {
-            "api": "operational",
-            "database": "operational",
-            "cache": "operational",
-            "models": "operational",
-        },
+        "status": "operational",
+        "version": "2.0.0",
+        "timestamp": datetime.utcnow().isoformat()
     }
